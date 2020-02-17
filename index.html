@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Map API's example</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      
+      button {
+        cursor: pointer;
+      }
+      
+      .popup {
+        position: fixed;
+        z-index: 99;
+        bottom: 1em;
+        left: 1em;
+        min-width: 200px;
+        min-height: 100px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 3px 3px 5px rgba(0,0,0,.5);
+        padding: 1em;
+        font-size: 130%;
+      }
+
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background-color: rgba(0,0,0,.2);
+        z-index: 100;
+        display: none;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal__wrapper {
+        min-width: 30vw;
+        min-height: 100px;
+        border-radius: 15px;
+        box-shadow: 5px 5px 5px rgba(0,0,0,0.2);
+        background-color: #fff;
+        padding: 1em;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="popup">
+      <p>Points count: <b id="pointsLength"></b></p>
+      <p>
+        <b>Marker group:</b>    <button class="btn" data-market-show="check" data-type="cluster">Hide groups</button>
+      </p>
+
+      <p>
+        <b>Map areas:</b>    <button class="btn" data-market-show="uncheck" data-type="area">Show area</button>
+      </p>
+    </div>
+
+    <div id="modal" class="modal">
+      <div class="modal__wrapper">
+        <div class="modal__container text-right">
+          <button id="close">X</button>
+        </div>
+        <div class="modal__container" id="modalContent"></div>
+      </div>
+    </div>
+
+    <div id="map" class="map"></div>
+
+    <script type="text/javascript" src="/points.js"></script>
+    <script src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAqEi3p6VCQg7h1QXQ6NpvBThs-Ls_bT94&libraries=visualization&callback=initMap"></script>
+    <script>
+      var allMarketsNumber = points.length
+      document.getElementById('pointsLength').innerText = allMarketsNumber
+      var btnGroup = document.getElementsByClassName('btn')
+      var markers = []
+      var map
+      var markerCluster
+      var heatmap
+
+      document.getElementById('close').onclick = function () {
+        document.getElementById('modal').style.display = 'none'
+      }
+
+      for (var i=0; i < btnGroup.length; i++) {
+        btnGroup[i].onclick = function(event) {
+          let isCluster = event.target.dataset.type === 'cluster'
+          let isShow = event.target.dataset.marketShow === 'check'
+
+          if (isCluster) {
+            for (var it in markers) {
+              markers[it].setVisible(!isShow);
+            }
+            markerCluster.repaint();
+          } else {
+            heatmap.setMap(isShow ? null : map)
+          }
+
+          event.target.innerText = isShow ?  'Show' : 'Hide'
+          event.target.dataset.marketShow = isShow ? 'uncheck' : 'check'
+        }
+      }
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 6.5,
+            center: {lat: 48.434341, lng: 30.527756}
+          });
+
+        var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        points.forEach(function(location, i) {
+          var mark = new google.maps.Marker({
+            position: {
+              lat: location[0],
+              lng: location[1]
+            },
+            label: labels[i % labels.length],
+            map: map
+          });
+
+          mark.addListener('click', function(event) {
+            console.log(event)
+            console.log(location)
+            document.getElementById('modalContent').innerText = location
+            document.getElementById('modal').style.display = 'flex'
+          });
+
+          markers.push(mark)
+        });
+
+        markerCluster = new MarkerClusterer(map, markers, {
+            imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
+            ignoreHidden: true
+          });
+
+        heatmap = new google.maps.visualization.HeatmapLayer({
+          data: points.map(function(location, i) {
+              return { location: new google.maps.LatLng(...location), weight: 1 }
+            })
+        });
+
+        // heatmap.setMap(map);
+      }
+    </script>
+  </body>
+</html>
