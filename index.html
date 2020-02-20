@@ -69,7 +69,7 @@
       </p>
 
       <p>
-        <b>Map areas:</b>    <button class="btn" data-market-show="uncheck" data-type="area">Show area</button>
+        <b>Map areas:</b>    <button class="btn" data-market-show="check" data-type="area">Hide area</button>
       </p>
     </div>
 
@@ -89,11 +89,14 @@
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAqEi3p6VCQg7h1QXQ6NpvBThs-Ls_bT94&libraries=visualization&callback=initMap"></script>
     <script>
       var allMarketsNumber = points.length
+      var half_length = Math.ceil(points.length / 2);
+
       document.getElementById('pointsLength').innerText = allMarketsNumber
       var btnGroup = document.getElementsByClassName('btn')
       var markers = []
       var map
       var markerCluster
+      var markerCluster2
       var heatmap
 
       document.getElementById('close').onclick = function () {
@@ -110,6 +113,7 @@
               markers[it].setVisible(!isShow);
             }
             markerCluster.repaint();
+            markerCluster2.repaint();
           } else {
             heatmap.setMap(isShow ? null : map)
           }
@@ -127,6 +131,7 @@
 
         var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+   
         points.forEach(function(location, i) {
           var mark = new google.maps.Marker({
             position: {
@@ -138,8 +143,6 @@
           });
 
           mark.addListener('click', function(event) {
-            console.log(event)
-            console.log(location)
             document.getElementById('modalContent').innerText = location
             document.getElementById('modal').style.display = 'flex'
           });
@@ -147,18 +150,54 @@
           markers.push(mark)
         });
 
-        markerCluster = new MarkerClusterer(map, markers, {
-            imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
+        // multiple cluster
+        var pointsGroup1 = markers.slice(0, half_length) 
+        var pointsGroup2 = markers.slice(half_length, markers.length - 1) 
+        
+        markerCluster = new MarkerClusterer(map, pointsGroup1, {
+        	imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
             ignoreHidden: true
-          });
+        });
 
+        // my custom cluster
+		markerCluster2 = new MarkerClusterer(map, pointsGroup2, {
+    		imagePath: './points/p',
+            ignoreHidden: true
+        });
+
+		// customized Heatmap 
+        var gradient = [
+			'rgba(255, 0, 0, 0)',
+			'rgba(255, 255, 0, 0.9)',
+			'rgba(0, 255, 0, 0.7)',
+			'rgba(173, 255, 47, 0.5)',
+			'rgba(152, 251, 152, 0)',
+			'rgba(152, 251, 152, 0)',
+			'rgba(0, 0, 238, 0.5)',
+			'rgba(186, 85, 211, 0.7)',
+			'rgba(255, 0, 255, 0.9)',
+			'rgba(255, 0, 0, 1)'
+		]
+
+		// create heatmap
         heatmap = new google.maps.visualization.HeatmapLayer({
-          data: points.map(function(location, i) {
+      		data: points.splice(0,half_length).map(function(location, i) {
+              return { location: new google.maps.LatLng(...location), weight: 1 }
+            }),
+		    gradient: gradient
+        });
+        // init heatmap
+        heatmap.setMap(map);
+
+
+        // add second heatmap. 
+        // It's not displayed, I don't know why
+        heatmap2 = new google.maps.visualization.HeatmapLayer({
+      		data: points.splice(half_length, points.length - 1).map(function(location, i) {
               return { location: new google.maps.LatLng(...location), weight: 1 }
             })
         });
-
-        // heatmap.setMap(map);
+        heatmap2.setMap(map);
       }
     </script>
   </body>
